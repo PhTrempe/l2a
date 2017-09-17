@@ -22,7 +22,7 @@ class Trainer(object):
         pds = DatasetIO.read_dataset_from_csv_file(
             Hyperparameters.PREPARED_DATASET_PATH)
 
-        xs_tilde, ys_tilde = [list(x) for x in zip(*pds)]
+        x_observations, y_observations = [list(x) for x in zip(*pds)]
 
         model = Trainer.load_model()
         model.summary()
@@ -37,7 +37,7 @@ class Trainer(object):
         cbs = [nl, cp]
 
         model.fit(
-            xs_tilde, ys_tilde,
+            x_observations, y_observations,
             batch_size=Hyperparameters.BATCH_SIZE,
             epochs=Hyperparameters.NUM_EPOCHS,
             validation_split=Hyperparameters.VALIDATION_SPLIT,

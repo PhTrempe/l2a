@@ -10,7 +10,7 @@ class Predictor(object):
     def predict():
         model = Trainer.load_model()
 
-        x_tilde = numpy.array([
+        x_observations = numpy.array([
             [2, 5],
             [1, 1],
             [-3, 2],
@@ -18,9 +18,10 @@ class Predictor(object):
             [7, -7]
         ])
 
-        y_hat = numpy.round(model.predict_on_batch(x_tilde)).astype("int")
+        y_predictions = numpy.round(
+            model.predict_on_batch(x_observations)).astype("int")
 
-        for x_t, y_h in zip(x_tilde, y_hat):
+        for x_t, y_h in zip(x_observations, y_predictions):
             print("{} ==> {}".format(x_t, y_h))
 
         b.clear_session()

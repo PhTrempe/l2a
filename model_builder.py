@@ -28,8 +28,8 @@ class ModelBuilder(object):
         }
 
     @staticmethod
-    def accuracy(y_tilde, y_hat):
-        return b.mean(b.abs(b.round(y_hat) - y_tilde) <= 0.01)
+    def accuracy(y_observations, y_predictions):
+        return b.mean(b.abs(b.round(y_predictions) - y_observations) <= 0.01)
 
 
 if __name__ == "__main__":
