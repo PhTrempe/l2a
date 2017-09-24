@@ -1,3 +1,4 @@
+import tensorflow as tf
 from keras import backend as b
 from keras.layers import Dense
 from keras.models import Sequential
@@ -8,16 +9,17 @@ from hyperparameters import Hyperparameters
 class ModelBuilder(object):
     @staticmethod
     def build_model(input_shape, output_shape):
-        model = Sequential()
+        with tf.name_scope("model"):
+            model = Sequential()
+            model.add(Dense(8, name="fcl1", input_shape=input_shape))
+            model.add(Dense(*output_shape, name="out"))
 
-        model.add(Dense(8, name="fcl1", input_shape=input_shape))
-        model.add(Dense(*output_shape, name="out"))
-
-        model.compile(
-            loss="mse",
-            optimizer="adam",
-            metrics=["mae", "acc", ModelBuilder.accuracy]
-        )
+        with tf.name_scope("optimization"):
+            model.compile(
+                loss="mse",
+                optimizer="adam",
+                metrics=["mae", "acc", ModelBuilder.accuracy]
+            )
 
         return model
 
@@ -29,7 +31,9 @@ class ModelBuilder(object):
 
     @staticmethod
     def accuracy(y_observations, y_predictions):
-        return b.mean(b.abs(b.round(y_predictions) - y_observations) <= 0.01)
+        with tf.name_scope("accuracy"):
+            return b.mean(b.abs(b.round(
+                y_predictions) - y_observations) <= 0.01)
 
 
 if __name__ == "__main__":

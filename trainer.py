@@ -1,8 +1,10 @@
 import os
+import warnings
 
 from keras import backend as b
-from keras.callbacks import Callback, ModelCheckpoint
+from keras.callbacks import Callback, ModelCheckpoint, TensorBoard
 from keras.models import load_model
+import tensorflow as tf
 
 from dataset_generator import DatasetGenerator
 from dataset_io import DatasetIO
@@ -27,24 +29,37 @@ class Trainer(object):
         model = Trainer.load_model()
         model.summary()
 
-        nl = Trainer.PrintNewLineCallback()
         cp = ModelCheckpoint(
             filepath=Hyperparameters.MODEL_PATH,
             monitor="val_loss",
             verbose=1,
             save_best_only=True
         )
-        cbs = [nl, cp]
-
-        model.fit(
-            x_observations, y_observations,
+        tb = TensorBoard(
+            log_dir="./logs",
+            histogram_freq=1,
             batch_size=Hyperparameters.BATCH_SIZE,
-            epochs=Hyperparameters.NUM_EPOCHS,
-            validation_split=Hyperparameters.VALIDATION_SPLIT,
-            shuffle=True,
-            verbose=1,
-            callbacks=cbs
+            write_graph=True
         )
+        esv = Trainer.EarlyStoppingByValueCallback(
+            monitor="val_acc",
+            condition=">=",
+            value=1.0,
+            verbose=1
+        )
+        nl = Trainer.PrintNewLineCallback()
+        cbs = [cp, tb, esv, nl]
+
+        with tf.name_scope("training"):
+            model.fit(
+                x_observations, y_observations,
+                batch_size=Hyperparameters.BATCH_SIZE,
+                epochs=Hyperparameters.NUM_EPOCHS,
+                validation_split=Hyperparameters.VALIDATION_SPLIT,
+                shuffle=True,
+                verbose=1,
+                callbacks=cbs
+            )
 
         b.clear_session()
 
@@ -77,6 +92,34 @@ class Trainer(object):
     class PrintNewLineCallback(Callback):
         def on_epoch_end(self, epoch, logs=None):
             print()
+
+    class EarlyStoppingByValueCallback(Callback):
+        def __init__(self, monitor, condition, value=0.00001, verbose=0):
+            super(Callback, self).__init__()
+            self.monitor = monitor
+            self.condition = condition
+            self.value = value
+            self.verbose = verbose
+            if self.condition not in {"<", "<=", ">=", ">"}:
+                raise ValueError("condition must be '<', '<=', '>=', or '>'")
+
+        def on_epoch_end(self, epoch, logs=None):
+            if logs is None:
+                logs = {}
+            monitored_val = logs.get(self.monitor)
+            if monitored_val is None:
+                warnings.warn(
+                    "Watching {} for early stopping, but variable unavailable."
+                        .format(self.monitor), RuntimeWarning)
+            if self.condition == "<" and monitored_val < self.value \
+                    or self.condition == "<=" and monitored_val <= self.value \
+                    or self.condition == ">=" and monitored_val >= self.value \
+                    or self.condition == ">" and monitored_val > self.value:
+                self.model.stop_training = True
+                if self.verbose > 0:
+                    print("Epoch {}: early stopping since condition {} {} {} "
+                          "has been met".format(epoch, self.monitor,
+                                                self.condition, self.value))
 
 
 if __name__ == "__main__":
